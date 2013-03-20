@@ -32,8 +32,15 @@ module Spree
     # Handle the incoming user
     def sermepa_confirm
       load_order
+      notify = ActiveMerchant::Billing::Integrations::Sermepa.notification(params)
+      notify_acknowledge = notify.acknowledge(sermepa_credentials(payment_method))
+      @order.payments.destroy_all
       order_upgrade()
       payment_upgrade()
+      if notify_acknowledge #Complete payment        
+        payment = Spree::Payment.find_by_order_id(@order)
+        payment.complete! if notify.complete?
+      end
       flash[:notice] = I18n.t(:order_processed_successfully)
       redirect_to completion_route
     end
