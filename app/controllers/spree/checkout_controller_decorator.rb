@@ -62,6 +62,10 @@ module Spree
       return unless (params[:state] == "payment")
       return unless params[:order][:payments_attributes]
 
+      if params[:state] == "payment"
+        @order.payments.destroy_all
+      end
+
       @payment_method = Spree::PaymentMethod.find(params[:order][:payments_attributes].first[:payment_method_id])
       return unless @payment_method.kind_of?(Spree::BillingIntegration::SermepaPayment)
 
