@@ -62,6 +62,9 @@ module Spree
       return unless (params[:state] == "payment")
       return unless params[:order][:payments_attributes]
 
+      @payment_method = Spree::PaymentMethod.find(params[:order][:payments_attributes].first[:payment_method_id])
+      return unless @payment_method.kind_of?(Spree::BillingIntegration::SermepaPayment)
+
       if @order.update_attributes(object_params)
         if params[:order][:coupon_code] and !params[:order][:coupon_code].blank? and @order.coupon_code.present?
           fire_event('spree.checkout.coupon_code_added', :coupon_code => @order.coupon_code)
@@ -69,16 +72,12 @@ module Spree
       end
 
       load_order
-      @payment_method = Spree::PaymentMethod.find(params[:order][:payments_attributes].first[:payment_method_id])
-
-      if @payment_method.kind_of?(Spree::BillingIntegration::SermepaPayment)
-        if @payment_method.preferred_test_mode
-          ActiveMerchant::Billing::Base.mode = :test
-        end
-        @payment_method.provider_class::Helper.credentials = sermepa_credentials(payment_method)
-        #set_cache_buster
-        render 'spree/shared/_sermepa_payment_checkout', :layout => 'spree_sermepa_application'
+      if @payment_method.preferred_test_mode
+        ActiveMerchant::Billing::Base.mode = :test
       end
+      @payment_method.provider_class::Helper.credentials = sermepa_credentials(payment_method)
+      #set_cache_buster
+      render 'spree/shared/_sermepa_payment_checkout', :layout => 'spree_sermepa_application'
     end
 
     def sermepa_credentials (payment_method)
